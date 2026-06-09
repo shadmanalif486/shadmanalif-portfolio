@@ -6,6 +6,8 @@ import {
   Check, AlertCircle, RefreshCw, Layers, Clipboard, Mail, HelpCircle, User,
   Camera
 } from "lucide-react";
+import { auth, googleProvider } from "../lib/firebase";
+import { signInWithPopup, signOut } from "firebase/auth";
 import { Project, Service, Testimonial, BookingSubmission, GearItem } from "../types";
 
 interface AdminPanelProps {
@@ -58,6 +60,42 @@ export default function AdminPanel({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPin, setAdminPin] = useState("");
   const [authError, setAuthError] = useState("");
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setFirebaseUser(user);
+      if (user && user.email === "shadmanalif486@gmail.com") {
+        setIsAuthenticated(true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result.user && result.user.email === "shadmanalif486@gmail.com") {
+        setIsAuthenticated(true);
+        setAuthError("");
+      } else {
+        setAuthError("অনুমতি নেই! দয়া করে সঠিক অ্যাডমিন জিমেইল অ্যাকাউন্ট (shadmanalif486@gmail.com) দিয়ে লগইন করুন।");
+        await signOut(auth);
+      }
+    } catch (err: any) {
+      setAuthError(`লগইন ব্যর্থ হয়েছে: ${err.message}`);
+    }
+  };
+
+  const handleGoogleSignOut = async () => {
+    try {
+      await signOut(auth);
+      setIsAuthenticated(false);
+      setFirebaseUser(null);
+    } catch (err: any) {
+      console.error("Sign out error", err);
+    }
+  };
   const [activeTab, setActiveTab] = useState<"general" | "cloudinary" | "projects" | "services" | "testimonials" | "bookings" | "gear">("general");
 
   // Cloudinary State (Stored locally in localStorage)
@@ -521,11 +559,32 @@ export default function AdminPanel({
                 type="submit"
                 className="w-full py-3.5 bg-yellow-300 text-neutral-950 font-mono text-xs font-black uppercase border-2 border-neutral-950 shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] cursor-pointer transition-all active:translate-x-[1px]"
               >
-                প্যানেলে প্রবেশ করুন
+                প্যানেলে প্রবেশ করুন (Local Preview Only)
               </button>
             </form>
+
+            <div className="w-full flex items-center justify-between gap-2 py-1">
+              <span className="h-[1px] bg-neutral-300 flex-1"></span>
+              <span className="text-[9px] font-mono font-black uppercase text-neutral-500">অথবা ক্লাউড ডাটাবেস সিঙ্ক</span>
+              <span className="h-[1px] bg-neutral-300 flex-1"></span>
+            </div>
+
+            <button
+              onClick={handleGoogleSignIn}
+              type="button"
+              className="w-full py-3 bg-[#121212] hover:bg-neutral-800 text-white font-mono text-xs font-bold uppercase border-2 border-neutral-950 shadow-[3px_3px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] cursor-pointer transition-all active:translate-x-[1px] flex items-center justify-center gap-2 rounded-xl"
+            >
+              <svg className="w-4 h-4 shrink-0 text-white fill-current" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              Google দিয়ে সাইন-ইন (shadmanalif486@gmail.com)
+            </button>
+
             <p className="text-[10px] font-mono text-neutral-400 text-center">
-              পাসওয়ার্ড দিয়ে প্রবেশ করুন। ডিফল্ট কোড: <strong className="text-neutral-900">admin</strong>
+              লোকাল পিন দিয়ে প্রবেশ করতে পারেন বা গুগল আইডি দিয়ে সরাসরি ডেটাবেসে ফটো সিঙ্ক করতে পারেন। ডিফল্ট পিন: <strong className="text-neutral-900">admin</strong>
             </p>
           </div>
         ) : (

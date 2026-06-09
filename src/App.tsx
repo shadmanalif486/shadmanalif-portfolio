@@ -22,6 +22,15 @@ import Footer from "./components/Footer";
 import { Project, Service, BookingSubmission, Testimonial, GearItem } from "./types";
 import { SERVICES, PROJECTS, TESTIMONIALS, GEAR_ITEMS } from "./data";
 import AdminPanel from "./components/AdminPanel";
+import { auth } from "./lib/firebase";
+import { 
+  fetchConfig, saveConfig, 
+  fetchServices, saveService, removeService,
+  fetchProjects, saveProject, removeProject,
+  fetchTestimonials, saveTestimonial, removeTestimonial,
+  fetchGearItems, saveGearItem, removeGearItem,
+  fetchBookings, saveBooking, removeBooking
+} from "./lib/firestoreService";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -34,6 +43,7 @@ export default function App() {
 
   // Dynamic States for administrative panel
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
 
   const [dynServices, setDynServices] = useState<Service[]>(() => {
     const saved = localStorage.getItem("admin_services");
@@ -92,56 +102,204 @@ export default function App() {
     return localStorage.getItem("admin_about_me_image_fit") || "cover";
   });
 
-  const handleUpdateServices = (newServices: Service[]) => {
+  // Track Firebase connection
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch Cloud data on start (highly optimized)
+  useEffect(() => {
+    async function loadCloudData() {
+      try {
+        const config = await fetchConfig();
+        if (config) {
+          if (config.heroImageUrl) {
+            setHeroImageUrl(config.heroImageUrl);
+            localStorage.setItem("admin_hero_image_url", config.heroImageUrl);
+          }
+          if (config.homeTitle) {
+            setHomeTitle(config.homeTitle);
+            localStorage.setItem("admin_home_title", config.homeTitle);
+          }
+          if (config.aboutMeImageUrl) {
+            setAboutMeImageUrl(config.aboutMeImageUrl);
+            localStorage.setItem("admin_about_me_image_url", config.aboutMeImageUrl);
+          }
+          if (config.aboutCollabImageUrl) {
+            setAboutCollabImageUrl(config.aboutCollabImageUrl);
+            localStorage.setItem("admin_about_collab_image_url", config.aboutCollabImageUrl);
+          }
+          if (config.aboutMeImageFit) {
+            setAboutMeImageFit(config.aboutMeImageFit);
+            localStorage.setItem("admin_about_me_image_fit", config.aboutMeImageFit);
+          }
+        }
+
+        const clServices = await fetchServices();
+        if (clServices && clServices.length > 0) {
+          setDynServices(clServices);
+          localStorage.setItem("admin_services", JSON.stringify(clServices));
+        }
+
+        const clProjects = await fetchProjects();
+        if (clProjects && clProjects.length > 0) {
+          setDynProjects(clProjects);
+          localStorage.setItem("admin_projects", JSON.stringify(clProjects));
+        }
+
+        const clTestimonials = await fetchTestimonials();
+        if (clTestimonials && clTestimonials.length > 0) {
+          setDynTestimonials(clTestimonials);
+          localStorage.setItem("admin_testimonials", JSON.stringify(clTestimonials));
+        }
+
+        const clGear = await fetchGearItems();
+        if (clGear && clGear.length > 0) {
+          setDynGearItems(clGear);
+          localStorage.setItem("admin_gear_items", JSON.stringify(clGear));
+        }
+
+        if (auth.currentUser && auth.currentUser.email === "shadmanalif486@gmail.com") {
+          const clBookings = await fetchBookings();
+          if (clBookings) {
+            setDynBookings(clBookings);
+            localStorage.setItem("admin_bookings", JSON.stringify(clBookings));
+          }
+        }
+      } catch (err) {
+        console.warn("Could not retrieve Firestore collections, fallback to cached states", err);
+      }
+    }
+    loadCloudData();
+  }, [firebaseUser]);
+
+  const syncConfig = async (
+    hero: string,
+    title: string,
+    aboutMe: string,
+    collab: string,
+    fit: string
+  ) => {
+    try {
+      await saveConfig({
+        heroImageUrl: hero,
+        homeTitle: title,
+        aboutMeImageUrl: aboutMe,
+        aboutCollabImageUrl: collab,
+        aboutMeImageFit: fit
+      });
+    } catch (e) {
+      console.warn("Cloud Config Sync deferred:", e);
+    }
+  };
+
+  const handleUpdateServices = async (newServices: Service[]) => {
     setDynServices(newServices);
     localStorage.setItem("admin_services", JSON.stringify(newServices));
+    try {
+      for (const s of newServices) {
+        await saveService(s);
+      }
+      const removed = dynServices.filter(s => !newServices.some(ns => ns.id === s.id));
+      for (const r of removed) {
+        await removeService(r.id);
+      }
+    } catch (e) {
+      console.warn("Cloud Sync services deferred:", e);
+    }
   };
 
-  const handleUpdateProjects = (newProjects: Project[]) => {
+  const handleUpdateProjects = async (newProjects: Project[]) => {
     setDynProjects(newProjects);
     localStorage.setItem("admin_projects", JSON.stringify(newProjects));
+    try {
+      for (const p of newProjects) {
+        await saveProject(p);
+      }
+      const removed = dynProjects.filter(p => !newProjects.some(np => np.id === p.id));
+      for (const r of removed) {
+        await removeProject(r.id);
+      }
+    } catch (e) {
+      console.warn("Cloud Sync projects deferred:", e);
+    }
   };
 
-  const handleUpdateTestimonials = (newTestimonials: Testimonial[]) => {
+  const handleUpdateTestimonials = async (newTestimonials: Testimonial[]) => {
     setDynTestimonials(newTestimonials);
     localStorage.setItem("admin_testimonials", JSON.stringify(newTestimonials));
+    try {
+      for (const t of newTestimonials) {
+        await saveTestimonial(t);
+      }
+      const removed = dynTestimonials.filter(t => !newTestimonials.some(nt => nt.id === t.id));
+      for (const r of removed) {
+        await removeTestimonial(r.id);
+      }
+    } catch (e) {
+      console.warn("Cloud Sync testimonials deferred:", e);
+    }
   };
 
-  const handleNewBooking = (newBooking: BookingSubmission) => {
+  const handleNewBooking = async (newBooking: BookingSubmission) => {
     const updated = [newBooking, ...dynBookings];
     setDynBookings(updated);
     localStorage.setItem("admin_bookings", JSON.stringify(updated));
     showToast("বুকিং রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে!");
+    try {
+      await saveBooking(newBooking);
+    } catch (e) {
+      console.warn("Bookings Cloud storage deferred", e);
+    }
   };
 
   const handleUpdateHeroImageUrl = (url: string) => {
     setHeroImageUrl(url);
     localStorage.setItem("admin_hero_image_url", url);
+    syncConfig(url, homeTitle, aboutMeImageUrl, aboutCollabImageUrl, aboutMeImageFit);
   };
 
   const handleUpdateHomeTitle = (title: string) => {
     setHomeTitle(title);
     localStorage.setItem("admin_home_title", title);
+    syncConfig(heroImageUrl, title, aboutMeImageUrl, aboutCollabImageUrl, aboutMeImageFit);
   };
 
   const handleUpdateAboutMeImageUrl = (url: string) => {
     setAboutMeImageUrl(url);
     localStorage.setItem("admin_about_me_image_url", url);
+    syncConfig(heroImageUrl, homeTitle, url, aboutCollabImageUrl, aboutMeImageFit);
   };
 
   const handleUpdateAboutCollabImageUrl = (url: string) => {
     setAboutCollabImageUrl(url);
     localStorage.setItem("admin_about_collab_image_url", url);
+    syncConfig(heroImageUrl, homeTitle, aboutMeImageUrl, url, aboutMeImageFit);
   };
 
   const handleUpdateAboutMeImageFit = (fit: string) => {
     setAboutMeImageFit(fit);
     localStorage.setItem("admin_about_me_image_fit", fit);
+    syncConfig(heroImageUrl, homeTitle, aboutMeImageUrl, aboutCollabImageUrl, fit);
   };
 
-  const handleUpdateGearItems = (newGearItems: GearItem[]) => {
+  const handleUpdateGearItems = async (newGearItems: GearItem[]) => {
     setDynGearItems(newGearItems);
     localStorage.setItem("admin_gear_items", JSON.stringify(newGearItems));
+    try {
+      for (const g of newGearItems) {
+        await saveGearItem(g);
+      }
+      const removed = dynGearItems.filter(g => !newGearItems.some(ng => ng.id === g.id));
+      for (const r of removed) {
+        await removeGearItem(r.id);
+      }
+    } catch (e) {
+      console.warn("Cloud Sync gear items deferred:", e);
+    }
   };
 
   // Initial loading delay with cool rotating camera lens placeholder

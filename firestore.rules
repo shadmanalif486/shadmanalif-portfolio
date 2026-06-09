@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global safety net - Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'shadmanalif486@gmail.com'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. Config collection
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(configId);
+    }
+
+    // 2. Services collection
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(serviceId);
+    }
+
+    // 3. Projects collection
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(projectId);
+    }
+
+    // 4. Testimonials collection
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(testimonialId);
+    }
+
+    // 5. Gear items collection
+    match /gear_items/{gearItemId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(gearItemId);
+    }
+
+    // 6. Bookings collection
+    match /bookings/{bookingId} {
+      // Anyone can submit a booking request securely
+      allow create: if isValidId(bookingId) && 
+                    request.resource.data.name is string && 
+                    request.resource.data.name.size() > 0 &&
+                    request.resource.data.email is string &&
+                    request.resource.data.phone is string;
+      
+      // Only the authenticated admin can read or manage bookings
+      allow read, update, delete: if isAdmin() && isValidId(bookingId);
+    }
+  }
+}

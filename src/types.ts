@@ -46,6 +46,7 @@ export interface ProcessStep {
 }
 
 export interface BookingSubmission {
+  id?: string;
   name: string;
   email: string;
   phone: string;
@@ -53,6 +54,7 @@ export interface BookingSubmission {
   eventDate: string;
   budget: string;
   message: string;
+  createdAt?: string;
 }
 
 export interface GearItem {

@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "Config": {
+      "title": "Config",
+      "description": "Global home and layout configurations",
+      "type": "object",
+      "properties": {
+        "heroImageUrl": { "type": "string" },
+        "homeTitle": { "type": "string" },
+        "aboutMeImageUrl": { "type": "string" },
+        "aboutCollabImageUrl": { "type": "string" },
+        "aboutMeImageFit": { "type": "string" }
+      },
+      "required": ["heroImageUrl", "homeTitle", "aboutMeImageUrl", "aboutCollabImageUrl", "aboutMeImageFit"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Premium shooting packages offered",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "startingPrice": { "type": "string" },
+        "description": { "type": "string" },
+        "deliverables": { "type": "array" }
+      },
+      "required": ["id", "title", "startingPrice", "description"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A featured portfolio gallery entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "coupleNames": { "type": "string" },
+        "location": { "type": "string" },
+        "year": { "type": "string" },
+        "category": { "type": "string" },
+        "mainImage": { "type": "string" },
+        "tagline": { "type": "string" },
+        "galleryImages": { "type": "array" },
+        "videoUrl": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "mainImage"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "Client testimonial or feedback card",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "quote": { "type": "string" },
+        "author": { "type": "string" },
+        "role": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "quote", "author"]
+    },
+    "GearItem": {
+      "title": "GearItem",
+      "description": "Professional hardware specifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryLabel": { "type": "string" },
+        "specs": { "type": "string" },
+        "description": { "type": "string" },
+        "tag": { "type": "string" },
+        "tagColor": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "specs"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Interactive photoshoot reservation request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "eventType": { "type": "string" },
+        "eventDate": { "type": "string" },
+        "guests": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "phone"]
+    }
+  },
+  "firestore": {
+    "/config/{configId}": {
+      "schema": "Config",
+      "description": "Global settings configuration document"
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Dynamic service definitions"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Dynamic project portfolio showcase items"
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "Testimonial",
+      "description": "Dynamic customer testimonials"
+    },
+    "/gear_items/{gearItemId}": {
+      "schema": "GearItem",
+      "description": "Dynamic premium gear details"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Durable reservation entries made by web visitors"
+    }
+  }
+}
