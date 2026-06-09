@@ -107,7 +107,7 @@ export default function App() {
   });
 
   const [cloudinaryUploadPreset, setCloudinaryUploadPreset] = useState(() => {
-    return localStorage.getItem("cloudinary_upload_preset") || "ml_default";
+    return localStorage.getItem("cloudinary_upload_preset") || "wedding_preset";
   });
 
   // Track Firebase connection

@@ -106,7 +106,7 @@ export default function AdminPanel({
 
   // Cloudinary State (Stored locally in localStorage)
   const [cloudName, setCloudName] = useState(() => localStorage.getItem("cloudinary_cloud_name") || "db3uewokh");
-  const [uploadPreset, setUploadPreset] = useState(() => localStorage.getItem("cloudinary_upload_preset") || "ml_default");
+  const [uploadPreset, setUploadPreset] = useState(() => localStorage.getItem("cloudinary_upload_preset") || "wedding_preset");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploadError, setUploadError] = useState("");
