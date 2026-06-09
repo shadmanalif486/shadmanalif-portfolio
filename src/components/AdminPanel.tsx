@@ -32,6 +32,9 @@ interface AdminPanelProps {
   onUpdateAboutMeImageFit: (fit: string) => void;
   gearItems: GearItem[];
   onUpdateGearItems: (gearItems: GearItem[]) => void;
+  cloudinaryCloudName: string;
+  cloudinaryUploadPreset: string;
+  onUpdateCloudinary: (name: string, preset: string) => void;
 }
 
 export default function AdminPanel({
@@ -55,7 +58,10 @@ export default function AdminPanel({
   aboutMeImageFit,
   onUpdateAboutMeImageFit,
   gearItems,
-  onUpdateGearItems
+  onUpdateGearItems,
+  cloudinaryCloudName,
+  cloudinaryUploadPreset,
+  onUpdateCloudinary
 }: AdminPanelProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPin, setAdminPin] = useState("");
@@ -235,6 +241,15 @@ export default function AdminPanel({
     }
   }, [isOpen, isAuthenticated, homeTitle, heroImageUrl, aboutMeImageUrl, aboutCollabImageUrl, aboutMeImageFit]);
 
+  useEffect(() => {
+    if (cloudinaryCloudName) {
+      setCloudName(cloudinaryCloudName);
+    }
+    if (cloudinaryUploadPreset) {
+      setUploadPreset(cloudinaryUploadPreset);
+    }
+  }, [cloudinaryCloudName, cloudinaryUploadPreset]);
+
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminPin === "admin" || adminPin === "1234") {
@@ -246,9 +261,8 @@ export default function AdminPanel({
   };
 
   const handleSaveCloudinarySettings = () => {
-    localStorage.setItem("cloudinary_cloud_name", cloudName.trim());
-    localStorage.setItem("cloudinary_upload_preset", uploadPreset.trim());
-    alert("Cloudinary কনফিগারেশন সফলভাবে সেভ করা হয়েছে!");
+    onUpdateCloudinary(cloudName.trim(), uploadPreset.trim());
+    alert("Cloudinary কনফিগারেশন সফলভাবে ক্লাউড ডেটাবেসে সিঙ্ক করা হয়েছে!");
   };
 
   const handleCloudinaryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

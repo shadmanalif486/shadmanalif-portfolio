@@ -65,6 +65,8 @@ export async function fetchConfig() {
         aboutMeImageUrl: string;
         aboutCollabImageUrl: string;
         aboutMeImageFit: string;
+        cloudinaryCloudName?: string;
+        cloudinaryUploadPreset?: string;
       };
     }
     return null;
@@ -80,6 +82,8 @@ export async function saveConfig(config: {
   aboutMeImageUrl: string;
   aboutCollabImageUrl: string;
   aboutMeImageFit: string;
+  cloudinaryCloudName?: string;
+  cloudinaryUploadPreset?: string;
 }) {
   const path = "config/home";
   try {

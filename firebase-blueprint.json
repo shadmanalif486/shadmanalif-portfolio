@@ -9,7 +9,9 @@
         "homeTitle": { "type": "string" },
         "aboutMeImageUrl": { "type": "string" },
         "aboutCollabImageUrl": { "type": "string" },
-        "aboutMeImageFit": { "type": "string" }
+        "aboutMeImageFit": { "type": "string" },
+        "cloudinaryCloudName": { "type": "string" },
+        "cloudinaryUploadPreset": { "type": "string" }
       },
       "required": ["heroImageUrl", "homeTitle", "aboutMeImageUrl", "aboutCollabImageUrl", "aboutMeImageFit"]
     },

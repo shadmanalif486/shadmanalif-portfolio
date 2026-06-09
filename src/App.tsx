@@ -102,6 +102,14 @@ export default function App() {
     return localStorage.getItem("admin_about_me_image_fit") || "cover";
   });
 
+  const [cloudinaryCloudName, setCloudinaryCloudName] = useState(() => {
+    return localStorage.getItem("cloudinary_cloud_name") || "db3uewokh";
+  });
+
+  const [cloudinaryUploadPreset, setCloudinaryUploadPreset] = useState(() => {
+    return localStorage.getItem("cloudinary_upload_preset") || "ml_default";
+  });
+
   // Track Firebase connection
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -135,6 +143,14 @@ export default function App() {
           if (config.aboutMeImageFit) {
             setAboutMeImageFit(config.aboutMeImageFit);
             localStorage.setItem("admin_about_me_image_fit", config.aboutMeImageFit);
+          }
+          if (config.cloudinaryCloudName) {
+            setCloudinaryCloudName(config.cloudinaryCloudName);
+            localStorage.setItem("cloudinary_cloud_name", config.cloudinaryCloudName);
+          }
+          if (config.cloudinaryUploadPreset) {
+            setCloudinaryUploadPreset(config.cloudinaryUploadPreset);
+            localStorage.setItem("cloudinary_upload_preset", config.cloudinaryUploadPreset);
           }
         }
 
@@ -181,7 +197,9 @@ export default function App() {
     title: string,
     aboutMe: string,
     collab: string,
-    fit: string
+    fit: string,
+    cloudNameVal?: string,
+    uploadPresetVal?: string
   ) => {
     try {
       await saveConfig({
@@ -189,11 +207,21 @@ export default function App() {
         homeTitle: title,
         aboutMeImageUrl: aboutMe,
         aboutCollabImageUrl: collab,
-        aboutMeImageFit: fit
+        aboutMeImageFit: fit,
+        cloudinaryCloudName: cloudNameVal ?? cloudinaryCloudName,
+        cloudinaryUploadPreset: uploadPresetVal ?? cloudinaryUploadPreset
       });
     } catch (e) {
       console.warn("Cloud Config Sync deferred:", e);
     }
+  };
+
+  const handleUpdateCloudinary = (name: string, preset: string) => {
+    setCloudinaryCloudName(name);
+    setCloudinaryUploadPreset(preset);
+    localStorage.setItem("cloudinary_cloud_name", name);
+    localStorage.setItem("cloudinary_upload_preset", preset);
+    syncConfig(heroImageUrl, homeTitle, aboutMeImageUrl, aboutCollabImageUrl, aboutMeImageFit, name, preset);
   };
 
   const handleUpdateServices = async (newServices: Service[]) => {
@@ -607,6 +635,9 @@ export default function App() {
             onUpdateAboutMeImageFit={handleUpdateAboutMeImageFit}
             gearItems={dynGearItems}
             onUpdateGearItems={handleUpdateGearItems}
+            cloudinaryCloudName={cloudinaryCloudName}
+            cloudinaryUploadPreset={cloudinaryUploadPreset}
+            onUpdateCloudinary={handleUpdateCloudinary}
           />
         )}
       </AnimatePresence>
