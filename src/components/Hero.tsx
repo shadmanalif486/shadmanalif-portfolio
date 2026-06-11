@@ -111,12 +111,12 @@ export default function Hero({ onOpenBooking, onOpenVideo, heroImageUrl, homeTit
             </svg>
           </div>
 
-          {/* Main Portrait frame cutout: Floating organically with active scaling */}
+          {/* Main Portrait frame card: Presenting high-quality cleanly uploaded photos with zero color blending or background multiplying */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="relative z-10 w-full max-w-[280px] sm:max-w-[340px] lg:max-w-[380px] h-[20rem] sm:h-[26rem] lg:h-[30rem] flex items-center justify-center group"
+            className="relative z-10 w-full max-w-[280px] sm:max-w-[340px] lg:max-w-[380px] h-[21rem] sm:h-[27rem] lg:h-[31rem] bg-white border-3 border-neutral-950 shadow-[6px_6px_0px_rgba(0,0,0,1)] p-3 rounded-3xl overflow-hidden group"
           >
             <img
               src={heroImageUrl || "/input_file_1.png"}
@@ -124,8 +124,8 @@ export default function Hero({ onOpenBooking, onOpenVideo, heroImageUrl, homeTit
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=700";
               }}
-              alt="Sifat Photography photographer illustration cutout"
-              className="w-full h-full object-contain select-none hover:scale-[1.03] transition-transform duration-500 mix-blend-multiply bg-transparent"
+              alt="Shadman Alif Photography Showcase"
+              className="w-full h-full object-cover rounded-2xl select-none hover:scale-[1.03] transition-transform duration-500"
               referrerPolicy="no-referrer"
             />
           </motion.div>

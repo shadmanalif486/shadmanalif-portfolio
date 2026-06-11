@@ -37,6 +37,76 @@ interface AdminPanelProps {
   onUpdateCloudinary: (name: string, preset: string) => void;
 }
 
+/**
+ * Compresses an image file in the browser before upload to keep high quality but reduce size.
+ * Resizes if it exceeds maxWidth/maxHeight while preserving aspect ratio.
+ */
+const compressImage = (file: File, maxWidth = 2560, maxHeight = 2560, quality = 0.88): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type || !file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const isPng = file.type === "image/png";
+        const outputMime = isPng ? "image/png" : "image/jpeg";
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const fileName = isPng ? file.name : file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+              const compressedFile = new File([blob], fileName, {
+                type: outputMime,
+                lastModified: Date.now(),
+              });
+              
+              if (compressedFile.size < file.size) {
+                console.log(`[Auto-Compress] Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB, New size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            } else {
+              resolve(file);
+            }
+          },
+          outputMime,
+          isPng ? undefined : quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function AdminPanel({
   isOpen,
   onClose,
@@ -288,11 +358,12 @@ export default function AdminPanel({
     setUploadError("");
     setUploadedImageUrl("");
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
-
     try {
+      const compressedFile = await compressImage(file);
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+      formData.append("upload_preset", uploadPreset);
+
       const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
         method: "POST",
         body: formData
@@ -754,10 +825,11 @@ export default function AdminPanel({
                               return;
                             }
                             setGeneralUploadLoading(true);
-                            const formData = new FormData();
-                            formData.append("file", file);
-                            formData.append("upload_preset", uploadPreset);
                             try {
+                              const compressedFile = await compressImage(file);
+                              const formData = new FormData();
+                              formData.append("file", compressedFile);
+                              formData.append("upload_preset", uploadPreset);
                               const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
                                 method: "POST",
                                 body: formData
@@ -883,10 +955,11 @@ export default function AdminPanel({
                                 return;
                               }
                               setAboutMeUploadLoading(true);
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              formData.append("upload_preset", uploadPreset);
                               try {
+                                const compressedFile = await compressImage(file);
+                                const formData = new FormData();
+                                formData.append("file", compressedFile);
+                                formData.append("upload_preset", uploadPreset);
                                 const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
                                   method: "POST",
                                   body: formData
@@ -957,10 +1030,11 @@ export default function AdminPanel({
                                 return;
                               }
                               setAboutCollabUploadLoading(true);
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              formData.append("upload_preset", uploadPreset);
                               try {
+                                const compressedFile = await compressImage(file);
+                                const formData = new FormData();
+                                formData.append("file", compressedFile);
+                                formData.append("upload_preset", uploadPreset);
                                 const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
                                   method: "POST",
                                   body: formData
@@ -1352,10 +1426,11 @@ export default function AdminPanel({
                                 return;
                               }
                               setProjectCoverUploadLoading(true);
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              formData.append("upload_preset", uploadPreset);
                               try {
+                                const compressedFile = await compressImage(file);
+                                const formData = new FormData();
+                                formData.append("file", compressedFile);
+                                formData.append("upload_preset", uploadPreset);
                                 const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
                                   method: "POST",
                                   body: formData
@@ -1453,10 +1528,11 @@ export default function AdminPanel({
                               
                               for (let i = 0; i < files.length; i++) {
                                 const file = files[i];
-                                const formData = new FormData();
-                                formData.append("file", file);
-                                formData.append("upload_preset", uploadPreset);
                                 try {
+                                  const compressedFile = await compressImage(file);
+                                  const formData = new FormData();
+                                  formData.append("file", compressedFile);
+                                  formData.append("upload_preset", uploadPreset);
                                   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
                                     method: "POST",
                                     body: formData
@@ -1873,10 +1949,11 @@ export default function AdminPanel({
                                 return;
                               }
                               setTestimonialUploadLoading(true);
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              formData.append("upload_preset", uploadPreset);
                               try {
+                                const compressedFile = await compressImage(file);
+                                const formData = new FormData();
+                                formData.append("file", compressedFile);
+                                formData.append("upload_preset", uploadPreset);
                                 const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName.trim()}/image/upload`, {
                                   method: "POST",
                                   body: formData
