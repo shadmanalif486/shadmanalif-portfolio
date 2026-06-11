@@ -338,6 +338,108 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Automatic migration of /input_file style localized files to Cloudinary cloud hosting
+  useEffect(() => {
+    async function migrateLocalImages() {
+      if (!cloudinaryCloudName || !cloudinaryUploadPreset || cloudinaryUploadPreset === "ml_default") {
+        return;
+      }
+
+      let updated = false;
+      let newHero = heroImageUrl;
+      let newAboutMe = aboutMeImageUrl;
+      let newAboutCollab = aboutCollabImageUrl;
+
+      const needsHeroMigration = heroImageUrl && heroImageUrl.startsWith("/input_file");
+      const needsAboutMeMigration = aboutMeImageUrl && aboutMeImageUrl.startsWith("/input_file");
+      const needsAboutCollabMigration = aboutCollabImageUrl && aboutCollabImageUrl.startsWith("/input_file");
+
+      if (!needsHeroMigration && !needsAboutMeMigration && !needsAboutCollabMigration) {
+        return;
+      }
+
+      async function uploadToCloudinary(localPath: string): Promise<string | null> {
+        try {
+          console.log(`Auto-migrating local asset ${localPath} to Cloudinary...`);
+          const response = await fetch(localPath);
+          if (!response.ok) throw new Error(`Failed to fetch local file ${localPath}`);
+          const blob = await response.blob();
+
+          const formData = new FormData();
+          formData.append("file", blob, "uploaded_image.png");
+          formData.append("upload_preset", cloudinaryUploadPreset);
+
+          const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryCloudName.trim()}/image/upload`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(() => ({}));
+            throw new Error(errData.error?.message || "Cloudinary upload failed");
+          }
+
+          const data = await uploadRes.json();
+          if (data.secure_url) {
+            console.log(`Success! Local asset ${localPath} migrated to:`, data.secure_url);
+            return data.secure_url;
+          }
+        } catch (err) {
+          console.error(`Error auto-migrating ${localPath}:`, err);
+        }
+        return null;
+      }
+
+      if (needsHeroMigration) {
+        const url = await uploadToCloudinary(heroImageUrl);
+        if (url) {
+          newHero = url;
+          updated = true;
+        }
+      }
+
+      if (needsAboutMeMigration) {
+        const url = await uploadToCloudinary(aboutMeImageUrl);
+        if (url) {
+          newAboutMe = url;
+          updated = true;
+        }
+      }
+
+      if (needsAboutCollabMigration) {
+        const url = await uploadToCloudinary(aboutCollabImageUrl);
+        if (url) {
+          newAboutCollab = url;
+          updated = true;
+        }
+      }
+
+      if (updated) {
+        setHeroImageUrl(newHero);
+        localStorage.setItem("admin_hero_image_url", newHero);
+        setAboutMeImageUrl(newAboutMe);
+        localStorage.setItem("admin_about_me_image_url", newAboutMe);
+        setAboutCollabImageUrl(newAboutCollab);
+        localStorage.setItem("admin_about_collab_image_url", newAboutCollab);
+
+        await saveConfig({
+          heroImageUrl: newHero,
+          homeTitle,
+          aboutMeImageUrl: newAboutMe,
+          aboutCollabImageUrl: newAboutCollab,
+          aboutMeImageFit,
+          cloudinaryCloudName,
+          cloudinaryUploadPreset
+        });
+        showToast("লোকাল ছবি সফলভাবে আপনার ক্লাউডিনারিতে আপলোড করে সিঙ্ক করা হয়েছে!");
+      }
+    }
+
+    if (!loading) {
+      migrateLocalImages();
+    }
+  }, [loading, heroImageUrl, aboutMeImageUrl, aboutCollabImageUrl, cloudinaryCloudName, cloudinaryUploadPreset]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {

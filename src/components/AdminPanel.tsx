@@ -105,8 +105,17 @@ export default function AdminPanel({
   const [activeTab, setActiveTab] = useState<"general" | "cloudinary" | "projects" | "services" | "testimonials" | "bookings" | "gear">("general");
 
   // Cloudinary State (Stored locally in localStorage)
-  const [cloudName, setCloudName] = useState(() => localStorage.getItem("cloudinary_cloud_name") || "db3uewokh");
-  const [uploadPreset, setUploadPreset] = useState(() => localStorage.getItem("cloudinary_upload_preset") || "wedding_preset");
+  const [cloudName, setCloudName] = useState(() => {
+    return localStorage.getItem("cloudinary_cloud_name") || "db3uewokh";
+  });
+  const [uploadPreset, setUploadPreset] = useState(() => {
+    const saved = localStorage.getItem("cloudinary_upload_preset");
+    if (saved === "ml_default") {
+      localStorage.setItem("cloudinary_upload_preset", "wedding_preset");
+      return "wedding_preset";
+    }
+    return saved || "wedding_preset";
+  });
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploadError, setUploadError] = useState("");
@@ -290,7 +299,9 @@ export default function AdminPanel({
       });
 
       if (!res.ok) {
-        throw new Error("আপলোড ব্যর্থ হয়েছে! ক্লাউডিং ডিটেইলস এবং Unsigned Preset চেক করুন।");
+        const errData = await res.json().catch(() => ({}));
+        const details = errData.error?.message || "";
+        throw new Error(`আপলোড ব্যর্থ হয়েছে! ${details ? `(${details}) ` : ""}ক্লাউডিং ডিটেইলস এবং Unsigned Preset চেক করুন।`);
       }
 
       const data = await res.json();
@@ -752,7 +763,9 @@ export default function AdminPanel({
                                 body: formData
                               });
                               if (!res.ok) {
-                                throw new Error("আপলোড ব্যর্থ হয়েছে! Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।");
+                                const errData = await res.json().catch(() => ({}));
+                                const details = errData.error?.message || "";
+                                throw new Error(`আপলোড ব্যর্থ হয়েছে! ${details ? `(${details}) ` : ""}Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।`);
                               }
                               const data = await res.json();
                               if (data.secure_url) {
@@ -879,7 +892,9 @@ export default function AdminPanel({
                                   body: formData
                                 });
                                 if (!res.ok) {
-                                  throw new Error("আপলোড ব্যর্থ হয়েছে! Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।");
+                                  const errData = await res.json().catch(() => ({}));
+                                  const details = errData.error?.message || "";
+                                  throw new Error(`আপলোড ব্যর্থ হয়েছে! ${details ? `(${details}) ` : ""}Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।`);
                                 }
                                 const data = await res.json();
                                 if (data.secure_url) {
@@ -951,7 +966,9 @@ export default function AdminPanel({
                                   body: formData
                                 });
                                 if (!res.ok) {
-                                  throw new Error("আপলোড ব্যর্থ হয়েছে! Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।");
+                                  const errData = await res.json().catch(() => ({}));
+                                  const details = errData.error?.message || "";
+                                  throw new Error(`আপলোড ব্যর্থ হয়েছে! ${details ? `(${details}) ` : ""}Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।`);
                                 }
                                 const data = await res.json();
                                 if (data.secure_url) {
@@ -1344,7 +1361,9 @@ export default function AdminPanel({
                                   body: formData
                                 });
                                 if (!res.ok) {
-                                  throw new Error("আপলোড ব্যর্থ হয়েছে! Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।");
+                                  const errData = await res.json().catch(() => ({}));
+                                  const details = errData.error?.message || "";
+                                  throw new Error(`আপলোড ব্যর্থ হয়েছে! ${details ? `(${details}) ` : ""}Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।`);
                                 }
                                 const data = await res.json();
                                 if (data.secure_url) {
@@ -1863,7 +1882,9 @@ export default function AdminPanel({
                                   body: formData
                                 });
                                 if (!res.ok) {
-                                  throw new Error("আপলোড ব্যর্থ হয়েছে! Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।");
+                                  const errData = await res.json().catch(() => ({}));
+                                  const details = errData.error?.message || "";
+                                  throw new Error(`আপলোড ব্যর্থ হয়েছে! ${details ? `(${details}) ` : ""}Cloudinary ড্যাশবোর্ড সেটিংস চেক করুন।`);
                                 }
                                 const data = await res.json();
                                 if (data.secure_url) {
