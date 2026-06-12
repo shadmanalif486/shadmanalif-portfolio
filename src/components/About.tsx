@@ -76,24 +76,7 @@ export default function About({
                 referrerPolicy="no-referrer"
               />
               
-              {/* Floating Overlapping Small Action Polaroid */}
-              <motion.div
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="absolute -bottom-8 -right-10 w-44 h-36 bg-white border-3 border-neutral-950 shadow-[4px_4px_0px_rgba(0,0,0,1)] p-2 rounded-lg rotate-6 hidden sm:block overflow-hidden"
-              >
-                <img
-                  src={collabImageUrl}
-                  alt="Photography Camera Equipment"
-                  className="w-full h-[80%] object-cover rounded pointer-events-none"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="text-[9px] font-mono font-bold uppercase text-center text-neutral-950 mt-1">
-                  Chitroborno Collab
-                </div>
-              </motion.div>
+              {/* Floating Overlapping Small Action Polaroid - Removed as requested */}
             </motion.div>
 
           </div>
