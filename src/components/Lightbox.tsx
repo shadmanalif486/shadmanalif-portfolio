@@ -44,7 +44,7 @@ export default function Lightbox({ project, startWithVideo = false, onClose }: L
           <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-10">
             <div className="text-left text-white/90">
               <span className="text-[10px] uppercase font-mono tracking-[0.25em] text-luxury-gold block">
-                CHITROBORNO COUTURE GALLERY
+                SHOOT BY SHADMAN ALIF
               </span>
               <h2 className="font-serif text-lg sm:text-2xl font-bold leading-tight uppercase tracking-wider">
                 {project.coupleNames || project.title}
