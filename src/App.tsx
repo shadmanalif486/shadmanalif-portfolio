@@ -330,6 +330,48 @@ export default function App() {
     }
   };
 
+  const handleSyncLocalToCloud = async (): Promise<boolean> => {
+    try {
+      // 1. Sync home configuration group
+      await saveConfig({
+        heroImageUrl,
+        homeTitle,
+        aboutMeImageUrl,
+        aboutCollabImageUrl,
+        aboutMeImageFit,
+        cloudinaryCloudName,
+        cloudinaryUploadPreset
+      });
+
+      // 2. Sync services
+      for (const s of dynServices) {
+        await saveService(s);
+      }
+
+      // 3. Sync projects
+      for (const p of dynProjects) {
+        await saveProject(p);
+      }
+
+      // 4. Sync testimonials
+      for (const t of dynTestimonials) {
+        await saveTestimonial(t);
+      }
+
+      // 5. Sync gear items
+      for (const g of dynGearItems) {
+        await saveGearItem(g);
+      }
+
+      showToast("সব লোকাল ডাটা সফলভাবে গুগল ক্লাউড ডাটাবেসে সিঙ্ক করা হয়েছে!");
+      return true;
+    } catch (err) {
+      console.error("Force sync failed", err);
+      showToast("সিঙ্ক করার সময় সমস্যা হয়েছে!");
+      return false;
+    }
+  };
+
   // Initial loading delay with cool rotating camera lens placeholder
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -740,6 +782,7 @@ export default function App() {
             cloudinaryCloudName={cloudinaryCloudName}
             cloudinaryUploadPreset={cloudinaryUploadPreset}
             onUpdateCloudinary={handleUpdateCloudinary}
+            onForceCloudSync={handleSyncLocalToCloud}
           />
         )}
       </AnimatePresence>
