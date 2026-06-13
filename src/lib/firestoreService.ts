@@ -52,6 +52,27 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Helper to recursively strip undefined properties so that setDoc doesn't fail
+export function cleanUndefined<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj as any;
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefined) as unknown as T;
+  }
+  if (typeof obj === "object") {
+    const cleaned: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const val = (obj as any)[key];
+        if (val !== undefined) {
+          cleaned[key] = cleanUndefined(val);
+        }
+      }
+    }
+    return cleaned as T;
+  }
+  return obj;
+}
+
 // 1. Config Service
 export async function fetchConfig() {
   const path = "config/home";
@@ -88,7 +109,7 @@ export async function saveConfig(config: {
   const path = "config/home";
   try {
     const docRef = doc(db, "config", "home");
-    await setDoc(docRef, config);
+    await setDoc(docRef, cleanUndefined(config));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -115,7 +136,7 @@ export async function saveService(service: Service) {
   const path = `services/${service.id}`;
   try {
     const docRef = doc(db, "services", service.id);
-    await setDoc(docRef, service);
+    await setDoc(docRef, cleanUndefined(service));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -152,7 +173,7 @@ export async function saveProject(project: Project) {
   const path = `projects/${project.id}`;
   try {
     const docRef = doc(db, "projects", project.id);
-    await setDoc(docRef, project);
+    await setDoc(docRef, cleanUndefined(project));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -189,7 +210,7 @@ export async function saveTestimonial(testimonial: Testimonial) {
   const path = `testimonials/${testimonial.id}`;
   try {
     const docRef = doc(db, "testimonials", testimonial.id);
-    await setDoc(docRef, testimonial);
+    await setDoc(docRef, cleanUndefined(testimonial));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -226,7 +247,7 @@ export async function saveGearItem(gear: GearItem) {
   const path = `gear_items/${gear.id}`;
   try {
     const docRef = doc(db, "gear_items", gear.id);
-    await setDoc(docRef, gear);
+    await setDoc(docRef, cleanUndefined(gear));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -270,7 +291,7 @@ export async function saveBooking(booking: BookingSubmission) {
   const path = `bookings/${docId}`;
   try {
     const docRef = doc(db, "bookings", docId);
-    await setDoc(docRef, finalBooking);
+    await setDoc(docRef, cleanUndefined(finalBooking));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }

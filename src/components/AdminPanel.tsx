@@ -1041,7 +1041,32 @@ export default function AdminPanel({
                                 }
                               } catch (err: any) {
                                 console.error("Sync error", err);
-                                alert("সিঙ্ক করার সময় একটি ত্রুটি ঘটেছে!");
+                                let message = "দুঃখিত, আপলোড সংযোগ ব্যর্থ হয়েছে।";
+                                if (err instanceof Error) {
+                                  const errStr = err.message;
+                                  try {
+                                    // Parse FirestoreErrorInfo if formatted as JSON
+                                    const parsed = JSON.parse(errStr);
+                                    if (parsed.error) {
+                                      if (parsed.error.includes("permission") || parsed.error.includes("Permission") || parsed.error.includes("insufficient")) {
+                                        message += "\n\nভুল এডমিন পারমিশন অথবা ডাটাবেস সিকিউরিটি পলিসি ব্লক করেছে। (Permission Denied)\n\nনিশ্চিত করুন যে আপনি সঠিক এডমিন জিমেইল ('shadmanalif486@gmail.com') দিয়ে গুগল সিঙ্ক সচল করেছেন।";
+                                      } else {
+                                        message += `\n\nকারণ: ${parsed.error}`;
+                                      }
+                                    } else {
+                                      message += `\n\nকারণ: ${errStr}`;
+                                    }
+                                  } catch (parseEx) {
+                                    if (errStr.includes("permission") || errStr.includes("Permission") || errStr.includes("insufficient")) {
+                                      message += "\n\nভুল এডমিন পারমিশন অথবা ডাটাবেস সিকিউরিটি পলিসি ব্লক করেছে। (Permission Denied)\n\nনিশ্চিত করুন যে আপনি সঠিক এডমিন জিমেইল ('shadmanalif486@gmail.com') দিয়ে গুগল সিঙ্ক সচল করেছেন।";
+                                    } else if (errStr.includes("quota") || errStr.includes("Quota")) {
+                                      message += "\n\nডাটাবেস লিমিট/কোটা অতিক্রম করেছে। অনুগ্রহ করে আগামীকাল পুনরায় চেষ্টা করুন।";
+                                    } else {
+                                      message += `\n\nকারণ: ${errStr}`;
+                                    }
+                                  }
+                                }
+                                alert(message);
                               } finally {
                                 setIsSyncingToCloud(false);
                               }

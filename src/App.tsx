@@ -368,7 +368,7 @@ export default function App() {
     } catch (err) {
       console.error("Force sync failed", err);
       showToast("সিঙ্ক করার সময় সমস্যা হয়েছে!");
-      return false;
+      throw err;
     }
   };
 
