@@ -7,6 +7,7 @@ import {
   Camera
 } from "lucide-react";
 import { auth, googleProvider } from "../lib/firebase";
+import firebaseConfig from "../../firebase-applet-config.json";
 import { signInWithPopup, signOut } from "firebase/auth";
 import { Project, Service, Testimonial, BookingSubmission, GearItem } from "../types";
 
@@ -141,6 +142,8 @@ export default function AdminPanel({
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [isSyncingToCloud, setIsSyncingToCloud] = useState(false);
   const [syncSuccessMessage, setSyncSuccessMessage] = useState("");
+  const [googleAuthError, setGoogleAuthError] = useState("");
+  const [showDomainStepGuide, setShowDomainStepGuide] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -153,17 +156,39 @@ export default function AdminPanel({
   }, []);
 
   const handleGoogleSignIn = async () => {
+    setGoogleAuthError("");
+    setShowDomainStepGuide(false);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user && result.user.email === "shadmanalif486@gmail.com") {
         setIsAuthenticated(true);
+        setGoogleAuthError("");
         setAuthError("");
       } else {
-        setAuthError("অনুমতি নেই! দয়া করে সঠিক অ্যাডমিন জিমেইল অ্যাকাউন্ট (shadmanalif486@gmail.com) দিয়ে লগইন করুন।");
+        const errorMsg = "অনুমতি নেই! দয়া করে সঠিক অ্যাডমিন জিমেইল অ্যাকাউন্ট (shadmanalif486@gmail.com) দিয়ে লগইন করুন।";
+        setGoogleAuthError(errorMsg);
+        setAuthError(errorMsg);
         await signOut(auth);
       }
     } catch (err: any) {
-      setAuthError(`লগইন ব্যর্থ হয়েছে: ${err.message}`);
+      console.error("Google Auth error info:", err);
+      let errorMsg = err.message || String(err);
+      
+      if (err.code === "auth/unauthorized-domain") {
+        errorMsg = `এই ডোমেনটি (${window.location.hostname}) আপনার Firebase প্রোজেক্টে অনুমোদিত (Authorized Domain) নয়। ডেটা সিঙ্ক করার জন্য এটিকে ফায়ারবেস কনসোলে প্রোভাইডার ডোমেন হিসেবে যুক্ত করতে হবে।`;
+        setShowDomainStepGuide(true);
+      } else if (err.code === "auth/popup-blocked") {
+        errorMsg = "আপনার ব্রাউজার গুগল অথ পপ-আপ উইন্ডো বা উইজেটটি ব্লক করেছে। দয়া করে আপনার ব্রাউজার সেটিংস থেকে পপ-আপ চালু (Allow pop-ups) করে পুনরায় চেষ্টা করুন!";
+      } else if (err.code === "auth/popup-closed-by-user") {
+        errorMsg = "লগইন স্ক্রিন পপআপটি আপনি বন্ধ করেছেন। পুনরায় সাইন-ইন ট্রাই করুন।";
+      } else if (err.code === "auth/network-request-failed") {
+        errorMsg = "নেটওয়ার্ক কানেকশন ব্যর্থ হয়েছে। দয়া করে আপনার ইন্টারনেট কানেকশন বা ফায়ারওয়াল চেক করুন!";
+      } else if (err.code === "auth/internal-error") {
+        errorMsg = `অভ্যন্তরীণ ফায়ারবেস অথেন্টিকেশন সমস্যা: ${err.message}`;
+      }
+      
+      setGoogleAuthError(errorMsg);
+      setAuthError(errorMsg);
     }
   };
 
@@ -579,7 +604,7 @@ export default function AdminPanel({
 
   const handleDeleteTestimonial = (id: string) => {
     if (confirm("আপনি কি নিশ্চিতভাবে এই রিভিউটি ডিলিট করতে চান?")) {
-      onUpdateTestimonials(testimonials.filter(t => t.id !== id));
+      onUpdateTestimonials(testimonials.filter((t) => t.id !== id));
     }
   };
 
@@ -628,8 +653,8 @@ export default function AdminPanel({
               <h3 className="font-sans text-xl font-bold text-neutral-900">
                 অ্যাডমিন সাইন-ইন ভেরিফিকেশন
               </h3>
-              <p className="font-sans text-xs text-neutral-500 font-medium">
-                সাইটের সার্ভিস, ছবির পোর্টফোলিও, ক্লাউডিনারি সেটিংস এবং বুকিংগুলো পরিচালনা করতে দয়া করে পাসওয়ার্ড দিয়ে প্রবেশ করুন।
+              <p className="font-sans text-xs text-neutral-500 font-bold">
+                সাইটের সার্ভিস, ছবির পোর্টফোলিও, ক্লাউডিনারি সেটিংস এবং বুকিংগুলো পরিচালনা করতে পাসওয়ার্ড দিয়ে প্রবেশ করুন।
               </p>
             </div>
 
@@ -692,13 +717,13 @@ export default function AdminPanel({
             ) : (
               <div className="bg-emerald-50 border-b-2.5 border-neutral-950 px-5 py-2.5 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2.5 font-sans text-xs text-neutral-900 shadow-sm">
                 <div className="flex items-center gap-2 text-left">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full border border-neutral-950 shrink-0" />
+                  <div className="w-3.5 h-3.5 bg-emerald-500 rounded-full border border-neutral-950 shrink-0" />
                   <div>
                     <span className="font-bold text-emerald-700">🟢 লাইভ ক্লাউড ডাটাবেস সিঙ্কড:</span> ছবি বা প্রজেক্ট মূল্য আপডেট করার সাথে সাথে তা সরাসরি Cloudinary ও Firestore-এ আপলোড হয়ে যাবে এবং সমস্ত ডিভাইস ও কাস্টমারের কাছে লাইভ শো হবে।
                   </div>
                 </div>
                 <div className="flex items-center gap-3 whitespace-nowrap">
-                  <span className="text-[10px] font-mono text-neutral-500">{firebaseUser.email}</span>
+                  <span className="text-[10px] font-mono text-neutral-500">{firebaseUser?.email}</span>
                   <button
                     type="button"
                     onClick={handleGoogleSignOut}
@@ -709,6 +734,49 @@ export default function AdminPanel({
                 </div>
               </div>
             )}
+
+            {/* GOOGLE AUTH ERROR INFO GRID */}
+            {googleAuthError && (
+              <div className="bg-red-50 border-b-2.5 border-neutral-950 p-6 text-left font-sans text-xs text-neutral-950 shadow-sm shrink-0">
+                <div className="flex gap-3 items-start">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <div className="space-y-3 flex-1">
+                    <div>
+                      <strong className="font-extrabold text-red-700">❌ গুগল সাইন-ইন সফল হয়নি!</strong>
+                      <p className="mt-1 font-semibold text-neutral-800">{googleAuthError}</p>
+                    </div>
+
+                    {showDomainStepGuide && (
+                      <div className="bg-white border-2 border-neutral-950 rounded-xl p-5 space-y-3 shadow-[3px_3px_0px_rgba(0,0,0,1)] max-w-3xl">
+                        <span className="font-black text-neutral-950 block border-b-2 border-neutral-950 pb-2 text-sm">🛠️ এটি সমাধান করার সহজ নিয়ম (১ মিনিটের কাজ):</span>
+                        <ol className="list-decimal list-inside space-y-2.5 font-bold text-neutral-800 leading-relaxed">
+                          <li>
+                            এই লিংকে ক্লিক করে আপনার ফায়ারবেস কনসোলে যান:{" "}
+                            <a 
+                              href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-blue-600 underline font-black hover:text-blue-800"
+                            >
+                              Firebase Console [ভেরিফাইড লিংক] ↗
+                            </a>
+                          </li>
+                          <li>সেখান থেকে উপরে ডানপাশে <strong className="text-neutral-950 underline">Settings (সেটিংস)</strong> ট্যাবে ক্লিক করুন।</li>
+                          <li>বাম পাশের তালিকা থেকে <strong className="text-neutral-950 underline">Authorized domains (অনুমোদিত ডোমেনসমূহ)</strong> অপশনে ক্লিক করুন।</li>
+                          <li><strong className="text-neutral-950">Add domain (ডোমেন যোগ করুন)</strong> বাটনে ক্লিক করে হুবহু নিচের ডোমেনটি টাইপ বা পেস্ট করুন:</li>
+                          <div className="my-1.5 p-3.5 bg-yellow-101 border-2 border-neutral-950 rounded-lg text-neutral-950 font-mono text-xs select-all text-center flex items-center justify-between gap-2 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                            <span className="font-black select-all">{window.location.hostname}</span>
+                            <span className="bg-neutral-950 text-white text-[9px] px-2 py-0.5 rounded uppercase font-sans">কпи করুন</span>
+                          </div>
+                          <li>ডোমেন যুক্ত করে <strong className="text-neutral-950">Save (সংরক্ষণ)</strong>-এ চাপুন। এবার এই পেজে এসে আবার লগইন বাটনে প্রেস করুন। সাথে সাথে কানেক্ট হয়ে যাবে!</li>
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
             {/* Admin Sidebar Navigation */}
             <div className="border-b-2 md:border-b-0 md:border-r-3 border-neutral-950 bg-[#FAF9F6] w-full md:w-56 flex flex-row md:flex-col overflow-x-auto shrink-0 scrollbar-none">
@@ -820,6 +888,44 @@ export default function AdminPanel({
                             আপনি পিন দিয়ে লগড-ইন আছেন, কিন্তু গুগল একাউন্ট যুক্ত করেননি। আপনার করা কোনো পরিবর্তন (যেমন নতুন ছবি বা দাম) অন্য ডিভাইস বা কাস্টমারের ফোনে দেখাতে নিচে গুগল দিয়ে সাইন-ইন করে সিঙ্ক চালু করুন।
                           </div>
                         </div>
+
+                        {googleAuthError && (
+                          <div className="bg-red-100/60 border-2 border-neutral-950 rounded-xl p-4 font-sans text-xs text-neutral-950 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                            <div className="flex gap-2.5 items-start">
+                              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                              <div className="space-y-2.5">
+                                <div>
+                                  <strong className="text-red-700">গুগল সাইন-ইন ত্রুটি:</strong>
+                                  <p className="mt-1 font-bold text-neutral-800">{googleAuthError}</p>
+                                </div>
+                                {showDomainStepGuide && (
+                                  <div className="bg-white border text-left p-3.5 rounded-lg space-y-2 border-neutral-300">
+                                    <span className="font-extrabold text-neutral-950 block">🛠️ ১ মিনিটে সমাধান করার নিয়ম:</span>
+                                    <ol className="list-decimal list-inside space-y-1.5 font-bold text-neutral-700">
+                                      <li>
+                                        যান:{" "}
+                                        <a 
+                                          href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`} 
+                                          target="_blank" 
+                                          rel="noreferrer" 
+                                          className="text-blue-600 underline font-black"
+                                        >
+                                          Firebase Settings Console ↗
+                                        </a>
+                                      </li>
+                                      <li><strong className="text-neutral-900">Settings (সেটিংস)</strong> ট্যাবে যান।</li>
+                                      <li>বাম পাশের তালিকায় <strong className="text-neutral-900">Authorized domains</strong> সিলেক্ট করুন।</li>
+                                      <li><strong className="text-neutral-900">Add domain</strong> বাটনে ক্লিক করে হুবহু নিচে দেওয়া ডোমেনটি বসান:</li>
+                                      <code className="block mt-1 p-2 bg-yellow-101 border border-solid border-neutral-900 font-mono text-center select-all bg-yellow-50">{window.location.hostname}</code>
+                                      <li>Save-এ ক্লিক করুন। এবার নিচের লগইন বাটনে প্রেস করুন। কাজ হয়ে গেছে!</li>
+                                    </ol>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <button
                           type="button"
                           onClick={handleGoogleSignIn}
@@ -831,7 +937,7 @@ export default function AdminPanel({
                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                           </svg>
-                          গুগল দিয়ে লগইন করে সিঙ্ক অন করুন (shadmanalif486@gmail.com)
+                          גুগল দিয়ে লগইন করে সিঙ্ক অন করুন (shadmanalif486@gmail.com)
                         </button>
                       </div>
                     ) : (
