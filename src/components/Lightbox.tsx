@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronLeft, ChevronRight, Projector } from "lucide-react";
 import { Project } from "../types";
+import { optimizeCloudinaryUrl } from "../data";
 
 interface LightboxProps {
   project: Project | null;
@@ -20,13 +21,41 @@ export default function Lightbox({ project, startWithVideo = false, onClose }: L
   const [activeIndex, setActiveIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(startWithVideo);
 
+  const totalImages = project.galleryImages?.length || 0;
+
   const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % project.galleryImages.length);
+    if (totalImages <= 1) return;
+    setActiveIndex((prev) => (prev + 1) % totalImages);
   };
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + project.galleryImages.length) % project.galleryImages.length);
+    if (totalImages <= 1) return;
+    setActiveIndex((prev) => (prev - 1 + totalImages) % totalImages);
   };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") handleNext();
+      if (e.key === "ArrowLeft") handlePrev();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [totalImages]);
+
+  // Preload adjacent images in background for instant switching
+  useEffect(() => {
+    if (!project.galleryImages || project.galleryImages.length <= 1) return;
+    const nextIdx = (activeIndex + 1) % totalImages;
+    const prevIdx = (activeIndex - 1 + totalImages) % totalImages;
+
+    const imgNext = new Image();
+    imgNext.src = optimizeCloudinaryUrl(project.galleryImages[nextIdx], 1920);
+
+    const imgPrev = new Image();
+    imgPrev.src = optimizeCloudinaryUrl(project.galleryImages[prevIdx], 1920);
+  }, [activeIndex, project.galleryImages, totalImages]);
 
   return (
     <AnimatePresence>
@@ -82,12 +111,12 @@ export default function Lightbox({ project, startWithVideo = false, onClose }: L
               <AnimatePresence mode="wait">
                 <motion.img
                   key={activeIndex}
-                  src={project.galleryImages[activeIndex]}
+                  src={optimizeCloudinaryUrl(project.galleryImages[activeIndex], 1920)}
                   alt={`${project.coupleNames} gallery photo ${activeIndex + 1}`}
                   initial={{ opacity: 0, scale: 0.99 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.99 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.2 }}
                   className="max-w-full max-h-full object-contain pointer-events-none shadow-2xl"
                   referrerPolicy="no-referrer"
                 />

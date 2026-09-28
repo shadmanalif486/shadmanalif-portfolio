@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { PROJECTS } from "../data";
+import { PROJECTS, optimizeCloudinaryUrl } from "../data";
 import { Project } from "../types";
 import { Camera, Sparkles, Sliders, Eye, Play, ArrowRight, ArrowDown } from "lucide-react";
 
@@ -131,8 +131,10 @@ export default function FeaturedWork({ onSelectProject, projects }: FeaturedWork
                   {/* Polaroid Main Image framing */}
                   <div className="h-80 sm:h-96 w-full rounded-2xl overflow-hidden border-2 border-neutral-950 bg-neutral-100 relative group">
                     <img
-                      src={project.mainImage}
+                      src={optimizeCloudinaryUrl(project.mainImage, 800)}
                       alt={project.title}
+                      loading={index < 2 ? "eager" : "lazy"}
+                      decoding="async"
                       className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105 pointer-events-none"
                       referrerPolicy="no-referrer"
                     />

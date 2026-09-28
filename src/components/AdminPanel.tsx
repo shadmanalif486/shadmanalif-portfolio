@@ -176,20 +176,23 @@ export default function AdminPanel({
         await signOut(auth);
       }
     } catch (err: any) {
-      console.error("Google Auth error info:", err);
-      let errorMsg = err.message || String(err);
+      if (err?.code === "auth/popup-closed-by-user" || err?.code === "auth/cancelled-popup-request") {
+        // User closed or cancelled the login popup. This is standard user action, not a system failure.
+        return;
+      }
+      let errorMsg = err?.message || String(err);
       
-      if (err.code === "auth/unauthorized-domain") {
+      if (err?.code === "auth/unauthorized-domain") {
         errorMsg = `এই ডোমেনটি (${window.location.hostname}) আপনার Firebase প্রোজেক্টে অনুমোদিত (Authorized Domain) নয়। ডেটা সিঙ্ক করার জন্য এটিকে ফায়ারবেস কনসোলে প্রোভাইডার ডোমেন হিসেবে যুক্ত করতে হবে।`;
         setShowDomainStepGuide(true);
-      } else if (err.code === "auth/popup-blocked") {
+      } else if (err?.code === "auth/popup-blocked") {
         errorMsg = "আপনার ব্রাউজার গুগল অথ পপ-আপ উইন্ডো বা উইজেটটি ব্লক করেছে। দয়া করে আপনার ব্রাউজার সেটিংস থেকে পপ-আপ চালু (Allow pop-ups) করে পুনরায় চেষ্টা করুন!";
-      } else if (err.code === "auth/popup-closed-by-user") {
-        errorMsg = "লগইন স্ক্রিন পপআপটি আপনি বন্ধ করেছেন। পুনরায় সাইন-ইন ট্রাই করুন।";
-      } else if (err.code === "auth/network-request-failed") {
+      } else if (err?.code === "auth/network-request-failed") {
         errorMsg = "নেটওয়ার্ক কানেকশন ব্যর্থ হয়েছে। দয়া করে আপনার ইন্টারনেট কানেকশন বা ফায়ারওয়াল চেক করুন!";
-      } else if (err.code === "auth/internal-error") {
-        errorMsg = `অভ্যন্তরীণ ফায়ারবেস অথেন্টিকেশন সমস্যা: ${err.message}`;
+      } else if (err?.code === "auth/internal-error") {
+        errorMsg = `অভ্যন্তরীণ ফায়ারবেস অথেন্টিকেশন সমস্যা: ${err?.message || ""}`;
+      } else {
+        console.warn("Google Auth sign-in non-fatal status:", err?.code || err?.message);
       }
       
       setGoogleAuthError(errorMsg);
@@ -278,6 +281,74 @@ export default function AdminPanel({
 
   // Gear states and helper functions
   const [editingGearId, setEditingGearId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    type: "project" | "service" | "testimonial" | "gear";
+    id: string;
+    title: string;
+  } | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirmation) return;
+    const { type, id } = deleteConfirmation;
+    if (type === "project") {
+      onUpdateProjects(projects.filter(p => p.id !== id));
+      if (editingProjectId === id) {
+        setEditingProjectId(null);
+        setNewProject({
+          title: "",
+          coupleNames: "",
+          location: "",
+          year: "2026",
+          category: "photography",
+          mainImage: "",
+          tagline: "",
+          galleryImages: []
+        });
+      }
+    } else if (type === "service") {
+      onUpdateServices(services.filter(s => s.id !== id));
+      if (editingServiceId === id) {
+        setEditingServiceId(null);
+        setNewService({
+          title: "",
+          subtitle: "",
+          description: "",
+          startingPrice: "",
+          deliverables: [],
+          iconName: "Camera"
+        });
+      }
+    } else if (type === "testimonial") {
+      onUpdateTestimonials(testimonials.filter(t => t.id !== id));
+      if (editingTestimonialId === id) {
+        setEditingTestimonialId(null);
+        setNewTestimonial({
+          author: "",
+          role: "Bride & Groom",
+          text: "",
+          rating: 5,
+          image: "",
+          location: "Mymensingh Ceremony",
+          eventDate: "2026"
+        });
+      }
+    } else if (type === "gear") {
+      onUpdateGearItems(gearItems.filter(g => g.id !== id));
+      if (editingGearId === id) {
+        setEditingGearId(null);
+        setNewGear({
+          name: "",
+          category: "bodies",
+          categoryLabel: "Camera Body",
+          specs: "",
+          description: "",
+          tag: "",
+          tagColor: "bg-red-400"
+        });
+      }
+    }
+    setDeleteConfirmation(null);
+  };
   const [newGear, setNewGear] = useState<Partial<GearItem>>({
     name: "",
     category: "bodies",
@@ -338,9 +409,12 @@ export default function AdminPanel({
   };
 
   const handleDeleteGear = (id: string) => {
-    if (confirm("আপনি কি নিশ্চিতভাবে এই গিয়ারটি তালিকা থেকে বাদ দিতে চান?")) {
-      onUpdateGearItems(gearItems.filter(g => g.id !== id));
-    }
+    const g = gearItems.find(item => item.id === id);
+    setDeleteConfirmation({
+      type: "gear",
+      id,
+      title: g?.name || "এই গিয়ারটি"
+    });
   };
 
   // Sync temp values when props change or auth succeeds, but prevent wiping local inputs during other updates
@@ -365,11 +439,12 @@ export default function AdminPanel({
 
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPin === "Dead9080@") {
+    const cleanPin = adminPin.trim();
+    if (cleanPin === "9080" || cleanPin === "Dead9080@") {
       setIsAuthenticated(true);
       setAuthError("");
     } else {
-      setAuthError("ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ড দিন।");
+      setAuthError("ভুল পিন কোড! অনুগ্রহ করে সঠিক পিন কোড দিন।");
     }
   };
 
@@ -483,9 +558,12 @@ export default function AdminPanel({
   };
 
   const handleDeleteProject = (id: string) => {
-    if (confirm("আপনি কি নিশ্চিতভাবে এই প্রজেক্টটি ডিলিট করতে চান?")) {
-      onUpdateProjects(projects.filter(p => p.id !== id));
-    }
+    const proj = projects.find(p => p.id === id);
+    setDeleteConfirmation({
+      type: "project",
+      id,
+      title: proj?.title || "এই পোর্টফোলিও প্রজেক্টটি"
+    });
   };
 
   const handleAddGalleryImage = () => {
@@ -545,9 +623,12 @@ export default function AdminPanel({
   };
 
   const handleDeleteService = (id: string) => {
-    if (confirm("আপনি কি নিশ্চিতভাবে এই সার্ভিসটি ডিলিট করতে চান?")) {
-      onUpdateServices(services.filter(s => s.id !== id));
-    }
+    const serv = services.find(s => s.id === id);
+    setDeleteConfirmation({
+      type: "service",
+      id,
+      title: serv?.title || "এই সার্ভিসটি"
+    });
   };
 
   const handleAddDeliverable = () => {
@@ -608,9 +689,12 @@ export default function AdminPanel({
   };
 
   const handleDeleteTestimonial = (id: string) => {
-    if (confirm("আপনি কি নিশ্চিতভাবে এই রিভিউটি ডিলিট করতে চান?")) {
-      onUpdateTestimonials(testimonials.filter((t) => t.id !== id));
-    }
+    const t = testimonials.find(item => item.id === id);
+    setDeleteConfirmation({
+      type: "testimonial",
+      id,
+      title: t?.author || "এই রিভিউটি"
+    });
   };
 
   if (!isOpen) return null;
@@ -1199,12 +1283,12 @@ export default function AdminPanel({
                     <div className="flex flex-col sm:flex-row items-center gap-6 bg-white p-4 border border-neutral-950 rounded-xl">
                       <div className="w-24 h-28 border border-neutral-950 rounded-xl overflow-hidden bg-[#FAF9F6] shrink-0">
                         <img 
-                          src={tempHeroImage || "/input_file_1.png"} 
+                          src={tempHeroImage || "https://res.cloudinary.com/db3uewokh/image/upload/v1781327270/d0d1d917-207d-4e1f-b11f-ae382c03f31a_moy66c.png"} 
                           alt="Cover Profile Preview" 
                           className="w-full h-full object-cover" 
                           onError={(e) => {
                             e.currentTarget.onerror = null;
-                            e.currentTarget.src = "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=300";
+                            e.currentTarget.src = "https://res.cloudinary.com/db3uewokh/image/upload/v1781327270/d0d1d917-207d-4e1f-b11f-ae382c03f31a_moy66c.png";
                           }}
                         />
                       </div>
@@ -2702,6 +2786,44 @@ export default function AdminPanel({
             </div>
           </div>
           </>
+        )}
+
+        {/* IN-APP CONFIRMATION MODAL - Replaces blocked window.confirm */}
+        {deleteConfirmation && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-neutral-950/70 backdrop-blur-xs">
+            <div className="bg-white border-3 border-neutral-950 rounded-2xl p-6 max-w-sm w-full shadow-[6px_6px_0px_rgba(0,0,0,1)] text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-12 h-12 bg-red-100 border-2 border-neutral-950 rounded-full flex items-center justify-center mx-auto shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="space-y-1.5 text-center">
+                <h4 className="font-sans text-base font-black text-neutral-950">
+                  আপনি কি নিশ্চিতভাবে ডিলিট করতে চান?
+                </h4>
+                <p className="font-sans text-xs text-neutral-700 font-bold bg-neutral-100 p-2.5 rounded-xl border border-neutral-300 truncate">
+                  "{deleteConfirmation.title}"
+                </p>
+                <p className="font-sans text-2xs text-neutral-500 font-medium">
+                  ডিলিট করলে পোর্টফোলিও বা সাইট থেকে এটি স্থায়ীভাবে মুছে যাবে।
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="flex-1 py-2.5 bg-neutral-100 hover:bg-neutral-200 border-2 border-neutral-950 text-neutral-900 font-mono text-xs font-black uppercase rounded-xl shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 border-2 border-neutral-950 text-white font-mono text-xs font-black uppercase rounded-xl shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer transition-transform active:translate-y-0.5"
+                >
+                  হ্যাঁ, ডিলিট করুন
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </motion.div>

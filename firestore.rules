@@ -62,7 +62,9 @@ service cloud.firestore {
                     request.resource.data.phone is string;
       
       // Only the authenticated admin can read or manage bookings
-      allow read, update, delete: if isAdmin() && isValidId(bookingId);
+      allow get: if isAdmin() && isValidId(bookingId);
+      allow list: if isAdmin();
+      allow update, delete: if isAdmin() && isValidId(bookingId);
     }
   }
 }

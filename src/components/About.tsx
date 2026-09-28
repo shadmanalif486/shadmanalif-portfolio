@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "motion/react";
 import { Sparkles, Sliders, CheckCircle, Award, Compass, Heart } from "lucide-react";
+import { optimizeCloudinaryUrl } from "../data";
 
 const AnimatedCounter = ({ end, duration = 2000, suffix = "" }: { end: number; duration?: number; suffix?: string }) => {
   const [count, setCount] = useState(0);
@@ -36,7 +37,7 @@ const AnimatedCounter = ({ end, duration = 2000, suffix = "" }: { end: number; d
 };
 
 export default function About({
-  meImageUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=95&w=1600",
+  meImageUrl = "https://res.cloudinary.com/db3uewokh/image/upload/v1781327286/111_owybwv.jpg",
   collabImageUrl = "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=95&w=1200",
   meImageFit = "cover"
 }: {
@@ -66,8 +67,10 @@ export default function About({
               className="relative w-72 sm:w-80 h-[25rem] bg-white border-3 border-neutral-950 shadow-[4px_4px_0px_rgba(0,0,0,1)] p-3 rounded-2xl"
             >
               <img
-                src={meImageUrl}
+                src={optimizeCloudinaryUrl(meImageUrl, 800)}
                 alt="Shadman Alif working"
+                loading="lazy"
+                decoding="async"
                 className={`w-full h-full rounded-xl pointer-events-none transition-all duration-500 ${
                   meImageFit === "contain"
                     ? "object-contain bg-neutral-900 border border-neutral-800 p-1"

@@ -268,11 +268,21 @@ export async function fetchBookings(): Promise<BookingSubmission[]> {
   const path = "bookings";
   try {
     const colRef = collection(db, "bookings");
-    const q = query(colRef, orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
+    let snap;
+    try {
+      const q = query(colRef, orderBy("createdAt", "desc"));
+      snap = await getDocs(q);
+    } catch {
+      snap = await getDocs(colRef);
+    }
     const bookings: BookingSubmission[] = [];
     snap.forEach((doc) => {
       bookings.push(doc.data() as BookingSubmission);
+    });
+    bookings.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
     });
     return bookings;
   } catch (err) {

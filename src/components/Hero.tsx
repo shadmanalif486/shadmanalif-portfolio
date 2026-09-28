@@ -6,6 +6,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Camera, Sparkles, Award, Play, ArrowUpRight, CheckCircle, Sliders } from "lucide-react";
+import { optimizeCloudinaryUrl } from "../data";
 
 interface HeroProps {
   onOpenBooking: () => void;
@@ -119,12 +120,13 @@ export default function Hero({ onOpenBooking, onOpenVideo, heroImageUrl, homeTit
             className="relative z-10 w-full max-w-[280px] sm:max-w-[340px] lg:max-w-[380px] h-[21rem] sm:h-[27rem] lg:h-[31rem] bg-white border-3 border-neutral-950 shadow-[6px_6px_0px_rgba(0,0,0,1)] p-3 rounded-3xl overflow-hidden group"
           >
             <img
-              src={heroImageUrl || "/input_file_1.png"}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=700";
-              }}
+              src={optimizeCloudinaryUrl(
+                heroImageUrl || "https://res.cloudinary.com/db3uewokh/image/upload/v1781327270/d0d1d917-207d-4e1f-b11f-ae382c03f31a_moy66c.png",
+                800
+              )}
               alt="Shadman Alif Photography Showcase"
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-cover rounded-2xl select-none hover:scale-[1.03] transition-transform duration-500"
               referrerPolicy="no-referrer"
             />

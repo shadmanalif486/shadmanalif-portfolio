@@ -46,18 +46,68 @@ export default function App() {
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
 
   const [dynServices, setDynServices] = useState<Service[]>(() => {
+    const deletedIds: string[] = (() => {
+      try { return JSON.parse(localStorage.getItem("admin_deleted_services_ids") || "[]"); } catch { return []; }
+    })();
     const saved = localStorage.getItem("admin_services");
-    return saved ? JSON.parse(saved) : SERVICES;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(s => !deletedIds.includes(s.id));
+        }
+      } catch (e) {}
+    }
+    return SERVICES.filter(s => !deletedIds.includes(s.id));
   });
 
   const [dynProjects, setDynProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem("admin_projects");
-    return saved ? JSON.parse(saved) : PROJECTS;
+    const deletedIds: string[] = (() => {
+      try { return JSON.parse(localStorage.getItem("admin_deleted_project_ids") || "[]"); } catch { return []; }
+    })();
+    try {
+      const saved = localStorage.getItem("admin_projects");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Permanently purge any legacy demo unsplash projects or demo placeholders
+          const cleanProjects = parsed.filter((p: any) =>
+            !deletedIds.includes(p.id) &&
+            !p.mainImage?.includes("unsplash.com") &&
+            p.coupleNames !== "Farhan & Shama" &&
+            p.coupleNames !== "Sajid & Nusrat" &&
+            p.coupleNames !== "Tanvir & Zara" &&
+            p.coupleNames !== "Studio Portfolio"
+          );
+          if (cleanProjects.length > 0) {
+            return cleanProjects;
+          }
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+    const initialClean = PROJECTS.filter(p => !deletedIds.includes(p.id));
+    try {
+      localStorage.setItem("admin_projects", JSON.stringify(initialClean));
+    } catch (e) {}
+    return initialClean;
   });
 
   const [dynTestimonials, setDynTestimonials] = useState<Testimonial[]>(() => {
+    const deletedIds: string[] = (() => {
+      try { return JSON.parse(localStorage.getItem("admin_deleted_testimonials_ids") || "[]"); } catch { return []; }
+    })();
     const saved = localStorage.getItem("admin_testimonials");
-    return saved ? JSON.parse(saved) : TESTIMONIALS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(t => !deletedIds.includes(t.id));
+        }
+      } catch (e) {}
+    }
+    return TESTIMONIALS.filter(t => !deletedIds.includes(t.id));
   });
 
   const [dynBookings, setDynBookings] = useState<BookingSubmission[]>(() => {
@@ -83,7 +133,11 @@ export default function App() {
   });
 
   const [heroImageUrl, setHeroImageUrl] = useState(() => {
-    return localStorage.getItem("admin_hero_image_url") || "/input_file_1.png";
+    const saved = localStorage.getItem("admin_hero_image_url");
+    if (saved && !saved.includes("input_file_1.png") && !saved.includes("unsplash.com")) {
+      return saved;
+    }
+    return "https://res.cloudinary.com/db3uewokh/image/upload/v1781327270/d0d1d917-207d-4e1f-b11f-ae382c03f31a_moy66c.png";
   });
 
   const [homeTitle, setHomeTitle] = useState(() => {
@@ -91,7 +145,11 @@ export default function App() {
   });
 
   const [aboutMeImageUrl, setAboutMeImageUrl] = useState(() => {
-    return localStorage.getItem("admin_about_me_image_url") || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=95&w=1600";
+    const saved = localStorage.getItem("admin_about_me_image_url");
+    if (saved && !saved.includes("unsplash.com")) {
+      return saved;
+    }
+    return "https://res.cloudinary.com/db3uewokh/image/upload/v1781327286/111_owybwv.jpg";
   });
 
   const [aboutCollabImageUrl, setAboutCollabImageUrl] = useState(() => {
@@ -156,26 +214,52 @@ export default function App() {
 
         const clServices = await fetchServices();
         if (clServices && clServices.length > 0) {
-          setDynServices(clServices);
-          localStorage.setItem("admin_services", JSON.stringify(clServices));
+          const deletedServices: string[] = (() => {
+            try { return JSON.parse(localStorage.getItem("admin_deleted_services_ids") || "[]"); } catch { return []; }
+          })();
+          const cleanServices = clServices.filter(s => !deletedServices.includes(s.id));
+          setDynServices(cleanServices);
+          localStorage.setItem("admin_services", JSON.stringify(cleanServices));
         }
 
         const clProjects = await fetchProjects();
         if (clProjects && clProjects.length > 0) {
-          setDynProjects(clProjects);
-          localStorage.setItem("admin_projects", JSON.stringify(clProjects));
+          const deletedProjects: string[] = (() => {
+            try { return JSON.parse(localStorage.getItem("admin_deleted_project_ids") || "[]"); } catch { return []; }
+          })();
+          // Permanently purge any legacy demo projects and user-deleted projects
+          const cleanProjects = clProjects.filter((p: any) =>
+            !deletedProjects.includes(p.id) &&
+            !p.mainImage?.includes("unsplash.com") &&
+            p.coupleNames !== "Farhan & Shama" &&
+            p.coupleNames !== "Sajid & Nusrat" &&
+            p.coupleNames !== "Tanvir & Zara" &&
+            p.coupleNames !== "Studio Portfolio"
+          );
+          if (cleanProjects.length > 0) {
+            setDynProjects(cleanProjects);
+            localStorage.setItem("admin_projects", JSON.stringify(cleanProjects));
+          }
         }
 
         const clTestimonials = await fetchTestimonials();
         if (clTestimonials && clTestimonials.length > 0) {
-          setDynTestimonials(clTestimonials);
-          localStorage.setItem("admin_testimonials", JSON.stringify(clTestimonials));
+          const deletedTestimonials: string[] = (() => {
+            try { return JSON.parse(localStorage.getItem("admin_deleted_testimonials_ids") || "[]"); } catch { return []; }
+          })();
+          const cleanTestimonials = clTestimonials.filter(t => !deletedTestimonials.includes(t.id));
+          setDynTestimonials(cleanTestimonials);
+          localStorage.setItem("admin_testimonials", JSON.stringify(cleanTestimonials));
         }
 
         const clGear = await fetchGearItems();
         if (clGear && clGear.length > 0) {
-          setDynGearItems(clGear);
-          localStorage.setItem("admin_gear_items", JSON.stringify(clGear));
+          const deletedGear: string[] = (() => {
+            try { return JSON.parse(localStorage.getItem("admin_deleted_gear_ids") || "[]"); } catch { return []; }
+          })();
+          const cleanGear = clGear.filter(g => !deletedGear.includes(g.id));
+          setDynGearItems(cleanGear);
+          localStorage.setItem("admin_gear_items", JSON.stringify(cleanGear));
         }
 
         if (auth.currentUser && auth.currentUser.email === "shadmanalif486@gmail.com") {
@@ -227,11 +311,22 @@ export default function App() {
   const handleUpdateServices = async (newServices: Service[]) => {
     setDynServices(newServices);
     localStorage.setItem("admin_services", JSON.stringify(newServices));
+    const removed = dynServices.filter(s => !newServices.some(ns => ns.id === s.id));
+    if (removed.length > 0) {
+      try {
+        const currentDeleted: string[] = JSON.parse(localStorage.getItem("admin_deleted_services_ids") || "[]");
+        const newlyRemovedIds = removed.map(r => r.id);
+        const allDeleted = Array.from(new Set([...currentDeleted, ...newlyRemovedIds]));
+        localStorage.setItem("admin_deleted_services_ids", JSON.stringify(allDeleted));
+      } catch (e) {}
+      showToast("সার্ভিস সফলভাবে ডিলিট করা হয়েছে!");
+    } else {
+      showToast("সার্ভিস তালিকা সফলভাবে আপডেট হয়েছে!");
+    }
     try {
       for (const s of newServices) {
         await saveService(s);
       }
-      const removed = dynServices.filter(s => !newServices.some(ns => ns.id === s.id));
       for (const r of removed) {
         await removeService(r.id);
       }
@@ -243,11 +338,22 @@ export default function App() {
   const handleUpdateProjects = async (newProjects: Project[]) => {
     setDynProjects(newProjects);
     localStorage.setItem("admin_projects", JSON.stringify(newProjects));
+    const removed = dynProjects.filter(p => !newProjects.some(np => np.id === p.id));
+    if (removed.length > 0) {
+      try {
+        const currentDeleted: string[] = JSON.parse(localStorage.getItem("admin_deleted_project_ids") || "[]");
+        const newlyRemovedIds = removed.map(r => r.id);
+        const allDeleted = Array.from(new Set([...currentDeleted, ...newlyRemovedIds]));
+        localStorage.setItem("admin_deleted_project_ids", JSON.stringify(allDeleted));
+      } catch (e) {}
+      showToast("পোর্টফোলিও সফলভাবে ডিলিট করা হয়েছে!");
+    } else {
+      showToast("পোর্টফোলিও তালিকা সফলভাবে আপডেট হয়েছে!");
+    }
     try {
       for (const p of newProjects) {
         await saveProject(p);
       }
-      const removed = dynProjects.filter(p => !newProjects.some(np => np.id === p.id));
       for (const r of removed) {
         await removeProject(r.id);
       }
@@ -259,11 +365,22 @@ export default function App() {
   const handleUpdateTestimonials = async (newTestimonials: Testimonial[]) => {
     setDynTestimonials(newTestimonials);
     localStorage.setItem("admin_testimonials", JSON.stringify(newTestimonials));
+    const removed = dynTestimonials.filter(t => !newTestimonials.some(nt => nt.id === t.id));
+    if (removed.length > 0) {
+      try {
+        const currentDeleted: string[] = JSON.parse(localStorage.getItem("admin_deleted_testimonials_ids") || "[]");
+        const newlyRemovedIds = removed.map(r => r.id);
+        const allDeleted = Array.from(new Set([...currentDeleted, ...newlyRemovedIds]));
+        localStorage.setItem("admin_deleted_testimonials_ids", JSON.stringify(allDeleted));
+      } catch (e) {}
+      showToast("রিভিউ সফলভাবে ডিলিট করা হয়েছে!");
+    } else {
+      showToast("রিভিউ তালিকা সফলভাবে আপডেট হয়েছে!");
+    }
     try {
       for (const t of newTestimonials) {
         await saveTestimonial(t);
       }
-      const removed = dynTestimonials.filter(t => !newTestimonials.some(nt => nt.id === t.id));
       for (const r of removed) {
         await removeTestimonial(r.id);
       }
@@ -317,11 +434,22 @@ export default function App() {
   const handleUpdateGearItems = async (newGearItems: GearItem[]) => {
     setDynGearItems(newGearItems);
     localStorage.setItem("admin_gear_items", JSON.stringify(newGearItems));
+    const removed = dynGearItems.filter(g => !newGearItems.some(ng => ng.id === g.id));
+    if (removed.length > 0) {
+      try {
+        const currentDeleted: string[] = JSON.parse(localStorage.getItem("admin_deleted_gear_ids") || "[]");
+        const newlyRemovedIds = removed.map(r => r.id);
+        const allDeleted = Array.from(new Set([...currentDeleted, ...newlyRemovedIds]));
+        localStorage.setItem("admin_deleted_gear_ids", JSON.stringify(allDeleted));
+      } catch (e) {}
+      showToast("গিয়ার সফলভাবে ডিলিট করা হয়েছে!");
+    } else {
+      showToast("গিয়ার তালিকা সফলভাবে আপডেট হয়েছে!");
+    }
     try {
       for (const g of newGearItems) {
         await saveGearItem(g);
       }
-      const removed = dynGearItems.filter(g => !newGearItems.some(ng => ng.id === g.id));
       for (const r of removed) {
         await removeGearItem(r.id);
       }
@@ -347,18 +475,37 @@ export default function App() {
       for (const s of dynServices) {
         await saveService(s);
       }
+      const deletedServices: string[] = JSON.parse(localStorage.getItem("admin_deleted_services_ids") || "[]");
+      for (const id of deletedServices) {
+        await removeService(id);
+      }
 
       // 3. Sync projects
       for (const p of dynProjects) {
         await saveProject(p);
+      }
+      const deletedProjects: string[] = JSON.parse(localStorage.getItem("admin_deleted_project_ids") || "[]");
+      for (const id of deletedProjects) {
+        await removeProject(id);
       }
 
       // 4. Sync testimonials
       for (const t of dynTestimonials) {
         await saveTestimonial(t);
       }
+      const deletedTestimonials: string[] = JSON.parse(localStorage.getItem("admin_deleted_testimonials_ids") || "[]");
+      for (const id of deletedTestimonials) {
+        await removeTestimonial(id);
+      }
 
       // 5. Sync gear items
+      for (const g of dynGearItems) {
+        await saveGearItem(g);
+      }
+      const deletedGear: string[] = JSON.parse(localStorage.getItem("admin_deleted_gear_ids") || "[]");
+      for (const id of deletedGear) {
+        await removeGearItem(id);
+      }
       for (const g of dynGearItems) {
         await saveGearItem(g);
       }
@@ -504,7 +651,7 @@ export default function App() {
       location: "Brahmaputra Scenic Waterfronts",
       year: "2026",
       category: "photography",
-      mainImage: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1200",
+      mainImage: heroImageUrl || "https://res.cloudinary.com/db3uewokh/image/upload/v1781327270/d0d1d917-207d-4e1f-b11f-ae382c03f31a_moy66c.png",
       tagline: "A selection of raw emotions, warm shadows, and premium skins.",
       galleryImages: [],
       videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
